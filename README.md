@@ -27,3 +27,8 @@ This repo runs multistereo on the Jetson Orin Nano using 3 Intel realsense Camer
 - There is a tutorial for multiple realsense cameras [here](https://nvidia-isaac-ros.github.io/concepts/visual_slam/cuvslam/tutorial_multi_realsense.html) for ROS ISAAC 4.1 which I need to adapt for ROS ISSAC 3.2
 - There is also a tutorial uisng multiple HAWK cameras [here](https://nvidia-isaac-ros.github.io/v/release-3.1/concepts/visual_slam/cuvslam/tutorial_multi_hawk.html) for ROS ISAAC 3.1 that may be useful.
 - Both guides are very out of the box guides and assume you have the parts as required. Need to do some more Digging.
+
+## Stereo Log 12.02.26
+- I am confused about how to implement this, everything is out of the box setup as per instructions but none share the under the hood setup making it hard to derive what I need to do to set up multi stereo on ISSAC ROS 3.2
+- my suspcision is I may need to make my own custom nodes to do this. With a yaml file.
+- At the end of the day I have come to the opinion that I need to make a customer launch file and since it is multi stereo 
