@@ -29,6 +29,31 @@ This repo runs multistereo on the Jetson Orin Nano using 3 Intel realsense Camer
 - Both guides are very out of the box guides and assume you have the parts as required. Need to do some more Digging.
 
 ## Stereo Log 12.02.26
-- I am confused about how to implement this, everything is out of the box setup as per instructions but none share the under the hood setup making it hard to derive what I need to do to set up multi stereo on ISSAC ROS 3.2
+- I am confused about how to implement this, everything is out of the box setup as per instructions but none share the under the hood setup making it hard to derive what I need to do to set up multi stereo on ISSAC ROS 3.2.
 - my suspcision is I may need to make my own custom nodes to do this. With a yaml file.
-- At the end of the day I have come to the opinion that I need to make a customer launch file and since it is multi stereo 
+- At the end of the day I have come to the opinion that I need to make a customer launch file and since it is multi stereo.
+
+## Stereo Log 13.02.26
+- I researched more how to implement and found this hidden example with no documentation (here)[https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/blob/release-3.2/isaac_ros_multicamera_vo/launch/isaac_ros_visual_slam_multirealsense.launch.py]
+- I have decided with the current time frame to run and implement this hiiden package without instructions.
+
+## Stereo Log 16.02.26
+- I have today implemented the above package and found it somewhat works using the following get up commands
+
+```bash
+  cd ${ISAAC_ROS_WS}/src
+
+  # Your command (this is fine)
+  git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples.git isaac_ros_examples
+```
+
+```bash
+  colcon build --symlink-install   --packages-up-to isaac_ros_multicamera_vo   --packages-skip isaac_ros_ess_models_install isaac_ros_peoplesemseg_models_install isaac_ros_peoplenet_models_install   --allow-overriding isaac_ros_stereo_image_proc isaac_ros_visual_slam
+```
+
+```bash
+  ros2 launch isaac_ros_multicamera_vo isaac_ros_visual_slam_multirealsense.launch.py
+```
+
+- At end of the day I got the launch file to run! but it would tell me there are errors.
+- I keep getting a sync error so tomorrow I am hardware sync the cameras and see what happens and then start the debugging process
