@@ -57,3 +57,15 @@ This repo runs multistereo on the Jetson Orin Nano using 3 Intel realsense Camer
 
 - At end of the day I got the launch file to run! but it would tell me there are errors.
 - I keep getting a sync error so tomorrow I am hardware sync the cameras and see what happens and then start the debugging process
+
+
+## Stereo Log 17.02.26
+- Today was a disaster when I came into the lab all the hardware for the Multi-Stereo Setup went missing. I couldn't find it anywhere.
+- I was so annoyed and upset, I went ahead and bought the parts from digiKey again but the delivery says arrival on Friday wheich is when the presentation is.
+- I am going to go ahead and try anf jerry rig something up instead but the connection will be flimsy without the right parts.
+- They are in a box named scout parts which has gone missing
+
+## Stereo Log 18.02.26
+- I had another look through the lab and found the box hidden behind a whole heap of other boxes within the lab! Sucess
+- I went to work and started the hardware setup as per (this)[https://github.com/NVlabs/PyCuVSLAM/blob/main/examples/realsense/multicamera_hardware_assembly.md] guide, which matches the realsaense guide.
+
