@@ -74,6 +74,7 @@ This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Inte
 - I found this out by going back and trying to get single stereo to work first and found it did work so i switched to the 435i which worked!
 - I took an image of the node diagram (below) my suspcision is that an extra camera node should exist publishing into the vslam node.
 <img width="1098" height="705" alt="Screenshot from 2026-02-12 17-24-01" src="https://github.com/user-attachments/assets/7f16e101-2ed7-452b-9f9f-5a227f55f687" />
+
 - I swapped to 2 Intel Realsense 435i, and then things looking cleaner however, I faced an issue where the camera nodes where silently failing and not publishing to the resapective topics.
 - I ended up with the Node diagram that looked like this after I relased the urdf and yaml files must have matching camera names:
 
