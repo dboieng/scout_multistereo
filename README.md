@@ -1,5 +1,5 @@
 # scout_multistereo
-This repo runs multistereo on the Jetson Orin Nano using 3 Intel realsense Camera's
+This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Intel realsense Camera's.
 
 # Multi-Stereo Setup (Plan)
 - Both guides are very out of the box guides and assume you have the parts as required. Need to do some more Digging.
@@ -69,3 +69,17 @@ This repo runs multistereo on the Jetson Orin Nano using 3 Intel realsense Camer
 - I had another look through the lab and found the box hidden behind a whole heap of other boxes within the lab! Sucess
 - I went to work and started the hardware setup as per (this)[https://github.com/NVlabs/PyCuVSLAM/blob/main/examples/realsense/multicamera_hardware_assembly.md] guide, which matches the realsaense guide.
 
+## Stereo Log 19.02.26
+- I spent hours trying to get multi stereo to work only to find that the IntelRealsense 435 cameras do not work in ISAAC ROS, only 455 and 435i works.
+- I found this out by going back and trying to get single stereo to work first and found it did work so i switched to the 435i which worked!
+- I took an image of the node diagram (below) my suspcision is that an extra camera node should exist publishing into the vslam node.
+<img width="1098" height="705" alt="Screenshot from 2026-02-12 17-24-01" src="https://github.com/user-attachments/assets/7f16e101-2ed7-452b-9f9f-5a227f55f687" />
+- I swapped to 2 Intel Realsense 435i, and then things looking cleaner however, I faced an issue where the camera nodes where silently failing and not publishing to the resapective topics.
+- I ended up with the Node diagram that looked like this after I relased the urdf and yaml files must have matching camera names:
+
+## Stereo Log 20.02.26
+- We present today I have 4 hours to fix this, to solve the problem I begin dubugging through everything and found out that I needed to upload a specfic .xml file to foxglove.
+- Once I fixed this issue, I found there was a comma missing at the very end of the launch file causing the realsense camera node to not start up and silently fail.
+- Once I fixed this issue one camera node was connecting to vslam however the second node was still failing silently. I found that there was a naming clash and rewrote the realsense node code.
+- sucess! problem solved! it works halleuia!
+- Setup Guide to follow.   
