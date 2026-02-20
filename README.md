@@ -1,8 +1,11 @@
 # scout_multistereo
 This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Intel realsense Camera's.
 
-# Multi-Stereo Setup (Plan)
-- Both guides are very out of the box guides and assume you have the parts as required. Need to do some more Digging.
+# Multi-Stereo Setup (Guide)
+- This guide is designed for ROS ISAAC 3.2 on the Jetson Orin Nano fixing hidden pre-existing examples. I assume you have ROS ISAAC container setup and 2 IntelRealsense 435i's.
+- It is an amalgmation of different guides
+
+## Step 1 - 
 
 
 # Stereo Log Book
