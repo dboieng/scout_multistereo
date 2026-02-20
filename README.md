@@ -78,6 +78,9 @@ This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Inte
 - I swapped to 2 Intel Realsense 435i, and then things looking cleaner however, I faced an issue where the camera nodes where silently failing and not publishing to the resapective topics.
 - I ended up with the Node diagram that looked like this after I relased the urdf and yaml files must have matching camera names:
 
+<img width="1178" height="618" alt="Screenshot from 2026-02-20 11-23-56" src="https://github.com/user-attachments/assets/4ed3fc6c-f3e5-4a54-9326-d218be1d1a83" />
+
+
 ## Stereo Log 20.02.26
 - We present today I have 4 hours to fix this, to solve the problem I begin dubugging through everything and found out that I needed to upload a specfic .xml file to foxglove.
 - Once I fixed this issue, I found there was a comma missing at the very end of the launch file causing the realsense camera node to not start up and silently fail.
