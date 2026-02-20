@@ -84,6 +84,12 @@ This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Inte
 ## Stereo Log 20.02.26
 - We present today I have 4 hours to fix this, to solve the problem I begin dubugging through everything and found out that I needed to upload a specfic .xml file to foxglove.
 - Once I fixed this issue, I found there was a comma missing at the very end of the launch file causing the realsense camera node to not start up and silently fail.
+
+<img width="1172" height="795" alt="Screenshot from 2026-02-19 18-00-45" src="https://github.com/user-attachments/assets/7fd577e2-a8d9-4f62-a310-76ab50328172" />
+
 - Once I fixed this issue one camera node was connecting to vslam however the second node was still failing silently. I found that there was a naming clash and rewrote the realsense node code.
 - sucess! problem solved! it works halleuia!
+
+<img width="1099" height="620" alt="Screenshot from 2026-02-20 15-51-54" src="https://github.com/user-attachments/assets/6fdf101b-5a97-4482-a2a9-d714b398eaae" />
+
 - Setup Guide to follow.   
