@@ -1,0 +1,134 @@
+#MultiStereo Commands
+
+sudo apt-get update
+sudo apt-get install -y curl jq tar
+
+NGC_ORG="nvidia"
+NGC_TEAM="isaac"
+PACKAGE_NAME="isaac_ros_visual_slam"
+NGC_RESOURCE="isaac_ros_visual_slam_assets"
+NGC_FILENAME="quickstart.tar.gz"
+MAJOR_VERSION=3
+MINOR_VERSION=2
+
+VERSION_REQ_URL="https://catalog.ngc.nvidia.com/api/resources/versions?orgName=$NGC_ORG&teamName=$NGC_TEAM&name=$NGC_RESOURCE&isPublic=true&pageNumber=0&pageSize=100&sortOrder=CREATED_DATE_DESC"
+
+AVAILABLE_VERSIONS=$(curl -s \
+    -H "Accept: application/json" "$VERSION_REQ_URL")
+
+LATEST_VERSION_ID=$(echo "$AVAILABLE_VERSIONS" | jq -r "
+    .recipeVersions[]
+    | .versionId as \$v
+    | \$v | select(test(\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"))
+    | split(\".\") | {major: .[0]|tonumber, minor: .[1]|tonumber, patch: .[2]|tonumber}
+    | select(.major == $MAJOR_VERSION and .minor <= $MINOR_VERSION)
+    | \$v
+    " | sort -V | tail -n 1
+)
+
+if [ -z "$LATEST_VERSION_ID" ]; then
+    echo "No corresponding version found for Isaac ROS $MAJOR_VERSION.$MINOR_VERSION"
+    echo "Found versions:"
+    echo "$AVAILABLE_VERSIONS" | jq -r '.recipeVersions[].versionId'
+else
+    mkdir -p "${ISAAC_ROS_WS}/isaac_ros_assets"
+    FILE_REQ_URL="https://api.ngc.nvidia.com/v2/resources/$NGC_ORG/$NGC_TEAM/$NGC_RESOURCE/versions/$LATEST_VERSION_ID/files/$NGC_FILENAME"
+
+    curl -LO --request GET "${FILE_REQ_URL}"
+    tar -xf "${NGC_FILENAME}" -C "${ISAAC_ROS_WS}/isaac_ros_assets"
+    rm "${NGC_FILENAME}"
+fi
+
+cd "${ISAAC_ROS_WS}"
+
+rosdep update && \
+# Dependencies for stereo image processing
+rosdep install --from-paths ${ISAAC_ROS_WS}/src/isaac_ros_image_pipeline/isaac_ros_stereo_image_proc --ignore-src -y && \
+# Dependencies for visual SLAM
+rosdep install --from-paths ${ISAAC_ROS_WS}/src/isaac_ros_visual_slam/isaac_ros_visual_slam --ignore-src -y
+
+# Dependencies 
+rosdep install --from-paths ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo --ignore-src -y
+
+
+cd ${ISAAC_ROS_WS}/ &&    colcon build --symlink-install --packages-up-to isaac_ros_stereo_image_proc --base-paths ${ISAAC_ROS_WS}/src/isaac_ros_image_pipeline/isaac_ros_stereo_image_proc
+
+cd ${ISAAC_ROS_WS}/ &&    colcon build --symlink-install --packages-up-to isaac_ros_visual_slam --base-paths ${ISAAC_ROS_WS}/src/isaac_ros_visual_slam/isaac_ros_visual_slam
+
+
+colcon build --symlink-install   --packages-up-to isaac_ros_multicamera_vo   --packages-skip isaac_ros_ess_models_install isaac_ros_peoplesemseg_models_install isaac_ros_peoplenet_models_install   --allow-overriding isaac_ros_stereo_image_proc isaac_ros_visual_slam
+
+source install/setup.bash
+
+ros2 launch isaac_ros_multicamera_vo isaac_ros_visual_slam_multirealsense.launch.py
+
+rs-enumerate-devices -S
+
+jobs -l
+
+kill %1 %2 %3 %4 %5
+
+sleep 1
+
+jobs -l
+
+kill -9 %1 %2 %3 %4 %5 2>/dev/null || true
+
+pkill -f realsense2_camera || true
+
+pkill -f component_container || true
+
+pkill -f foxglove_bridge || true
+
+ps aux | grep -E "realsense2_camera|component_container|foxglove_bridge|ros2 launch" | grep -v grep
+
+ss -lntp | grep 8765 || echo "port 8765 is free"
+
+# TEST FOXGLOVE
+ros2 node list | grep foxglove
+
+
+colcon build --symlink-install   --packages-up-to isaac_ros_multicamera_vo   --cmake-args -DBUILD_TESTING=OFF   --allow-overriding gxf_isaac_tensorops isaac_common isaac_ros_common isaac_ros_image_proc isaac_ros_launch_utils isaac_ros_test
+
+ros2 launch isaac_ros_multicamera_vo isaac_ros_visual_slam_multirealsense.launch.py use_rosbag:=False
+
+
+
+cd /workspaces/isaac_ros-dev/src
+
+git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros.git
+
+cd /workspaces/isaac_ros-dev
+rm -rf build install log
+
+source /opt/ros/humble/setup.bash
+
+rosdep update
+rosdep install --from-paths src --ignore-src -y
+
+colcon build --symlink-install \
+  --packages-up-to isaac_ros_multicamera_vo \
+  --allow-overriding gxf_isaac_tensorops isaac_common isaac_ros_common isaac_ros_image_proc isaac_ros_launch_utils isaac_ros_test
+
+
+
+
+
+
+# FIXS THAT WORKED
+
+
+def realsense_capture(common_params, camera_params):
+    return ComposableNode(
+        name='realsense',  # keep node name same inside each namespace
+        namespace=camera_params['camera_name'],  # <-- IMPORTANT
+        package='realsense2_camera',
+        plugin='realsense2_camera::RealSenseNodeFactory',
+        parameters=[{**common_params, **camera_params}],
+    )
+
+ros2 node list | grep robot_state_publisher
+ros2 topic list | grep '^/tf'
+ros2 topic echo --once /robot_description
+
+
