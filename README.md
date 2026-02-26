@@ -1,11 +1,29 @@
 # scout_multistereo
 This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Intel realsense Camera's.
 
-# Multi-Stereo Setup (Guide)
+## Multi-Stereo Setup (Guide)
 - This guide is designed for ROS ISAAC 3.2 on the Jetson Orin Nano fixing hidden pre-existing examples. I assume you have ROS ISAAC container setup and 2 IntelRealsense 435i's.
-- It is an amalgmation of different guides
+- It is an amalgmation of different guides and uses a Nivida Example that exists in the ISAAC ROS 3.2 Git repo with no setup guide or reference to it in NIVIDA's documentation.
 
-## Step 1 - 
+### Step 0 - I assume you have Hardware setup on the Jetson Orin Nano
+- If not follow my guide (here)[https://github.com/dboieng/Thesis/edit/main/README.md] steps 1 to 7.
+
+### Step 1 - 
+
+### 1. Create the Isaac ROS workspace and set environment variable
+
+```bash
+  mkdir -p ~/isaac_ros_ws/src
+
+  # Add ISAAC_ROS_WS to your shell configuration (bash example)
+  echo "export ISAAC_ROS_WS=$HOME/isaac_ros_ws" >> ~/.bashrc
+  source ~/.bashrc
+
+  cd "${ISAAC_ROS_WS}/src"
+```
+
+### 2. Clone Isaac ROS repositories (release 3.2)
+
 
 
 # Stereo Log Book
