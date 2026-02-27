@@ -380,13 +380,67 @@ ros2 launch isaac_ros_multicamera_vo \
   isaac_ros_visual_slam_multirealsense.launch.py
 ````
 
-```bash
-  ros2 topic list should output
-```
-- Note tf should exist if it doesn't there is a major problem.
-```bash
+- ros2 topic list should output:
+/camera1/extrinsics/depth_to_infra1
+/camera1/extrinsics/depth_to_infra2
+/camera1/imu
+/camera1/infra1/camera_info
+/camera1/infra1/image_rect_raw
+/camera1/infra1/image_rect_raw/compressed
+/camera1/infra1/image_rect_raw/compressedDepth
+/camera1/infra1/image_rect_raw/theora
+/camera1/infra1/metadata
+/camera1/infra2/camera_info
+/camera1/infra2/image_rect_raw
+/camera1/infra2/image_rect_raw/compressed
+/camera1/infra2/image_rect_raw/compressedDepth
+/camera1/infra2/image_rect_raw/theora
+/camera1/infra2/metadata
+/camera2/extrinsics/depth_to_infra1
+/camera2/extrinsics/depth_to_infra2
+/camera2/imu
+/camera2/infra1/camera_info
+/camera2/infra1/image_rect_raw
+/camera2/infra1/image_rect_raw/compressed
+/camera2/infra1/image_rect_raw/compressedDepth
+/camera2/infra1/image_rect_raw/theora
+/camera2/infra1/metadata
+/camera2/infra2/camera_info
+/camera2/infra2/image_rect_raw
+/camera2/infra2/image_rect_raw/compressed
+/camera2/infra2/image_rect_raw/compressedDepth
+/camera2/infra2/image_rect_raw/theora
+/camera2/infra2/metadata
+/diagnostics
+/joint_states
+/parameter_events
+/robot_description
+/rosout
+/tf
+/tf_static
+/visual_slam/status
+/visual_slam/tracking/odometry
+/visual_slam/tracking/slam_path
+/visual_slam/tracking/vo_path
+/visual_slam/tracking/vo_pose
+/visual_slam/tracking/vo_pose_covariance
+/visual_slam/trigger_hint
+/visual_slam/vis/gravity
+/visual_slam/vis/landmarks_cloud
+/visual_slam/vis/localizer
+/visual_slam/vis/localizer_loop_closure_cloud
+/visual_slam/vis/localizer_map_cloud
+/visual_slam/vis/localizer_observations_cloud
+/visual_slam/vis/loop_closure_cloud
+/visual_slam/vis/observations_cloud
+/visual_slam/vis/pose_graph_edges
+/visual_slam/vis/pose_graph_edges2
+/visual_slam/vis/pose_graph_nodes
+/visual_slam/vis/slam_odometry
+/visual_slam/vis/velocity
 
-```
+- Note tf should exist if it doesn't there is a major problem.
+
 
 ### Step 12. Foxglove visualisation
 - You need to import the forglove layout into foxglvoe before connecting
@@ -395,7 +449,7 @@ ros2 launch isaac_ros_multicamera_vo \
 ```bash
   foxglove-studio
 ```
-- import from file
+- import file from foxglove layouts
 
 ## Helpful Debugging commands
 - rs-enumerate-devices -S shows all cameras
