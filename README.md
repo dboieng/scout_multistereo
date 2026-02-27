@@ -1,13 +1,13 @@
 # scout_multistereo
-This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Intel Realsense 435i Camera's.
+This repository runs multi-stereo on the Jetson Orin Nano with ROS ISAAC 3.2 using two Intel RealSense D435i cameras.
 Start from **Step 8** if you have setup this up before.
 
 [Screencast from 02-20-2026 01:32:36 PM.webm](https://github.com/user-attachments/assets/f73d2423-a015-455b-881f-f4c10373a887)
 
 
 ## Multi-Stereo Setup (Guide)
-- This guide is designed for ROS ISAAC 3.2 on the Jetson Orin Nano fixing hidden pre-existing examples. I assume you have ROS ISAAC container setup and 2 IntelRealsense 435i's.
-- It is an amalgmation of different guides and uses a Nivida Example that exists in the ISAAC ROS 3.2 Git repo with no setup guide or reference in NIVIDA's 3.1 or 3.2 documentation it is ported over to visual slam folder from ROS ISAAC 4.0.
+- This guide is designed for ROS ISAAC 3.2 on the Jetson Orin Nano fixing hidden, pre-existing examples.
+- This guide is an amalgmation of different guides and uses a Nivida Example that exists in the ISAAC ROS 3.2 Git repo with no setup guide or reference in NIVIDA's documentation.
 
 ### Prerequisites - I assume you have Hardware setup on the Jetson Orin Nano
 - If not follow my guide [here](https://github.com/dboieng/Thesis/edit/main/README.md) steps 1 to 7.
@@ -60,7 +60,7 @@ touch .isaac_ros_common-config
 echo "CONFIG_IMAGE_KEY=ros2_humble.realsense" > .isaac_ros_common-config
 ```
 
-### Step 4. Fit Jetson CDI Issue (Important)
+### Step 4. Fix Jetson CDI Issue (Important)
 From the host:
 This rebuilds the container image using Dockerfile.realsense in one of its layered stages. Rebuilding can take several minutes.
 ```bash
@@ -69,8 +69,7 @@ cd ${ISAAC_ROS_WS}/src/isaac_ros_common && \
 ```
 - if you get this: docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: could not apply required modification to OCI specification: error modifying OCI spec: failed to inject CDI devices: unresolvable CDI devices nvidia.com/gpu=all: unknown
 - open ~/isaac_ros_ws/src/isaac_ros_common/scripts/run_dev.sh and find the line: DOCKER_ARGS+=("-e NVIDIA_VISIBLE_DEVICES=nvidia.com/gpu=all,nvidia.com/pva=all") and replace with DOCKER_ARGS+=("-e NVIDIA_VISIBLE_DEVICES=all")
-- I Found the above solution to not be very good and instead tried this off the forums which works:
-- to these install on host
+- Install the following on the host:
 ```bash
 sudo nvidia-ctk cdi generate --mode=csv --output=/etc/cdi/nvidia.yaml
 
@@ -93,7 +92,7 @@ sudo apt-get install -y pva-allow-2
 ```
 
 ### Step 5. Fix the launch file
-- The launch file has two key errors there is a missing comma at the end of the file that leads to the node setup hanging and there setup of the camera nodes fails because it does not iteratet he setup.
+- The launch file has two key errors there is a missing comma at the end of the file that leads to the cuVSLAM node silently failing and the setup of the camera nodes fails because it does not iterate the configuration.
 
 ```bash
   cd ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/launch
@@ -228,18 +227,18 @@ def generate_launch_description():
 ```
 
 ### Step 6. Find out your Realsense Camera Serial numbers 
-- They have to be the same camera class either (X2 435i or X2 455) for the hardware sync to work. Other cameras including 435 and 415 don't work.
+- They must be the same camera class (either two D435i or two D455) for hardware sync to work, cameras including the 435 and 415 do not work on ROS ISAAC.
 ```bash
   rs-enumerate-devices -S
 ```
 
-- And place in the file 'multi_realsense.yaml' located at:
+- Place them in the file 'multi_realsense.yaml' located at:
 ```bash
   cd ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/config
 ```
 
 ### Step 7. Update the urdf file
-- There is a Naming mismatch please copy the following urdf file into 2_realsense_calibration.urdf.xacro
+- TThere is a naming mismatch. Please copy the following URDF file: '2_realsense_calibration.urdf.xacro'
 ```bash
   cd ${ISAAC_ROS_WS}\${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/urdf
   vim 2_realsense_calibration.urdf.xacro
@@ -385,7 +384,7 @@ ros2 launch isaac_ros_multicamera_vo \
   isaac_ros_visual_slam_multirealsense.launch.py
 ````
 
-- ros2 topic list should output:
+- ros2 topic list should output the following:
 ```bash
 ros2 topic list
 /camera1/extrinsics/depth_to_infra1
@@ -446,19 +445,20 @@ ros2 topic list
 /visual_slam/vis/slam_odometry
 /visual_slam/vis/velocity
 ```
-- Note tf should exist if it doesn't there is a major problem.
+- Note: The TF should exist. If it does not, there is a major problem.
 
 
 ### Step 12. Foxglove visualisation
-```bash
-  foxglove-studio
-```
-- The jetson Orin Nano does not have the computational space to support foxglove and cuVSLAM please use wifi or ethernet to connect via foxglove
-- on jetson get the hostname:
+- The Jetson Orin Nano does not have sufficient computational resources to support Foxglove and cuVSLAM simultaneously.
+- Please use wifi or ethernet to connect via foxglove.
+- Fir Wifi setup on the jetson get the hostname:
 ```bash
   hostname -I
 ```
-- Open connection -> WebSocket: ws://JETSON_IP:8765
+- Start foxglove on based computer.
+```bash
+  foxglove-studio
+```- On base computer Open connection -> WebSocket: ws://JETSON_IP:8765
 - Import file from foxglove layouts click: 'import from file' and select 'foxglove_layout_realsense.json'
 - Should Look like this:
 <img width="2680" height="1660" alt="image" src="https://github.com/user-attachments/assets/88f2c82b-495a-4385-9ad5-37c13ccf8260" />
@@ -477,7 +477,7 @@ ros2 topic list
   ros2 topic hz /camera1/infra1/image_rect_raw
   ros2 topic hz /camera2/infra1/image_rect_raw
 ```
-- confirm TF tree exists for both
+- Confirm that the TF tree exists for both cameras.
 ```bash
 ros2 run tf2_ros tf2_echo camera1_link camera1_infra1_optical_frame
 ros2 run tf2_ros tf2_echo camera1_link camera1_infra2_optical_frame
@@ -487,8 +487,8 @@ ros2 run tf2_ros tf2_echo camera2_link camera2_infra2_optical_frame
 
 # Stereo Log Book
 ## Stereo Log 04.02.26
-- Found out that Jetson Orin Nano is Release 36 Version 4.4 which runs ROS ISSAC 3.2 and not the most recent ROS ISSAC 4.1
-- I Asked on the NIVIDA forums [here](https://forums.developer.nvidia.com/t/does-ros-issac-4-1-0-work-on-the-jetson-orin-nano/359612) if the Jetson Orin Nano will work on ROS ISSAC 4.1 and if ISSAC ROS 3.2 will have continued support.
+- Found out that Jetson Orin Nano is Release 36 Version 4.4 which runs ROS ISSAC 3.2 and not the most recent ROS ISAAC 4.1
+- I Asked on the NIVIDA forums [here](https://forums.developer.nvidia.com/t/does-ros-issac-4-1-0-work-on-the-jetson-orin-nano/359612) if the Jetson Orin Nano will work on ROS ISSAC 4.1 and if ISAAC ROS 3.2 will continue to be supported.
 
 ## Stereo Log 05.02.26
 - Based on the forum response I will go through the process of install ROS ISSAC 3.2
@@ -499,26 +499,26 @@ ros2 run tf2_ros tf2_echo camera2_link camera2_infra2_optical_frame
 - Had to take day off - largest stock loss in Australia since April 2025
 
 ## Stereo Log 10.02.26
-- Set up Single stereo on the Jetson Orin Nano following the insturctions [here](https://github.com/dboieng/Thesis)
-- This takes approximately 5 hours to complete isntallation of ROS ISSAC 3.2 on the first upload. Note I am using the realsense D435i and it needs to be plugged in during setup.
+- Set up Single stereo on the Jetson Orin Nano following the instructions [here](https://github.com/dboieng/Thesis)
+- This takes approximately 5 hours to complete installation of ROS ISSAC 3.2 on the first upload. Note I am using the realsense D435i and it needs to be plugged in during setup.
 
 ## Stereo Log 11.02.26
-- I want to develop a theorical steps to mutli stereo before implementation.
+- I want to develop the theoretical steps for multi-stereo, before implementation.
 - There is a tutorial for multiple realsense cameras [here](https://nvidia-isaac-ros.github.io/concepts/visual_slam/cuvslam/tutorial_multi_realsense.html) for ROS ISAAC 4.1 which I need to adapt for ROS ISSAC 3.2
-- There is also a tutorial uisng multiple HAWK cameras [here](https://nvidia-isaac-ros.github.io/v/release-3.1/concepts/visual_slam/cuvslam/tutorial_multi_hawk.html) for ROS ISAAC 3.1 that may be useful.
-- Both guides are very out of the box guides and assume you have the parts as required. Need to do some more Digging.
+- There is also a tutorial using multiple HAWK cameras [here](https://nvidia-isaac-ros.github.io/v/release-3.1/concepts/visual_slam/cuvslam/tutorial_multi_hawk.html) for ROS ISAAC 3.1 that may be useful.
+- Both guides are very out of the box guides and assume you have the parts as required. I need to do some more digging.
 
 ## Stereo Log 12.02.26
 - I am confused about how to implement this, everything is out of the box setup as per instructions but none share the under the hood setup making it hard to derive what I need to do to set up multi stereo on ISSAC ROS 3.2.
-- my suspcision is I may need to make my own custom nodes to do this. With a yaml file.
-- At the end of the day I have come to the opinion that I need to make a customer launch file and since it is multi stereo.
+- my suspicion is I may need to make my own custom nodes to do this. With a yaml file.
+- At the end of the day I have come to the opinion that I need to make a custom launch file and since it is multi stereo.
 
 ## Stereo Log 13.02.26
 - I researched more how to implement and found this hidden example with no documentation (here)[https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples/blob/release-3.2/isaac_ros_multicamera_vo/launch/isaac_ros_visual_slam_multirealsense.launch.py]
 - I have decided with the current time frame to run and implement this hiiden package without instructions.
 
 ## Stereo Log 16.02.26
-- I have today implemented the above package and found it somewhat works using the following get up commands
+- I have today implemented the above package and found it somewhat works using the following setup commands:
 
 ```bash
   cd ${ISAAC_ROS_WS}/src
@@ -535,14 +535,14 @@ ros2 run tf2_ros tf2_echo camera2_link camera2_infra2_optical_frame
   ros2 launch isaac_ros_multicamera_vo isaac_ros_visual_slam_multirealsense.launch.py
 ```
 
-- At end of the day I got the launch file to run! but it would tell me there are errors.
-- I keep getting a sync error so tomorrow I am hardware sync the cameras and see what happens and then start the debugging process
+- At end of the day I got the launch file to run! but it reported errors.
+- I keep getting a sync error so tomorrow I am hardware-sync the cameras and see what happens and then start the debugging process
 
 
 ## Stereo Log 17.02.26
 - Today was a disaster when I came into the lab all the hardware for the Multi-Stereo Setup went missing. I couldn't find it anywhere.
-- I was so annoyed and upset, I went ahead and bought the parts from digiKey again but the delivery says arrival on Friday wheich is when the presentation is.
-- I am going to go ahead and try anf jerry rig something up instead but the connection will be flimsy without the right parts.
+- I was so annoyed and upset, I went ahead and bought the parts from digiKey again but the delivery says arrival on Friday which is when the presentation is.
+- I am going to go ahead and try try and jerry-rig something together instead but the connection will be flimsy without the right parts.
 - They are in a box named scout parts which has gone missing
 
 ## Stereo Log 18.02.26
@@ -555,14 +555,14 @@ ros2 run tf2_ros tf2_echo camera2_link camera2_infra2_optical_frame
 - I took an image of the node diagram (below) my suspcision is that an extra camera node should exist publishing into the vslam node.
 <img width="1098" height="705" alt="Screenshot from 2026-02-12 17-24-01" src="https://github.com/user-attachments/assets/7f16e101-2ed7-452b-9f9f-5a227f55f687" />
 
-- I swapped to 2 Intel Realsense 435i, and then things looking cleaner however, I faced an issue where the camera nodes where silently failing and not publishing to the resapective topics.
-- I ended up with the Node diagram that looked like this after I relased the urdf and yaml files must have matching camera names:
+- I swapped to 2 Intel Realsense 435i, and then things looking cleaner however, I faced an issue where the camera nodes were silently failing and not publishing to the respective topics.
+- I ended up with the Node diagram that looked like this after I realised the urdf and yaml files must have matching camera names:
 
 <img width="1178" height="618" alt="Screenshot from 2026-02-20 11-23-56" src="https://github.com/user-attachments/assets/4ed3fc6c-f3e5-4a54-9326-d218be1d1a83" />
 
 
 ## Stereo Log 20.02.26
-- We present today I have 4 hours to fix this, to solve the problem I begin dubugging through everything and found out that I needed to upload a specfic .xml file to foxglove.
+- We present today I have 4 hours to fix this, to solve the problem I begin debugging through everything and found out that I needed to upload a specfic .xml file to foxglove.
 - Once I fixed this issue, I found there was a comma missing at the very end of the launch file causing the realsense camera node to not start up and silently fail.
 
 <img width="1172" height="795" alt="Screenshot from 2026-02-19 18-00-45" src="https://github.com/user-attachments/assets/7fd577e2-a8d9-4f62-a310-76ab50328172" />
