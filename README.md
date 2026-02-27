@@ -347,7 +347,7 @@ def generate_launch_description():
 </robot>
 ```
 
-### Step 7. Build Packages in the correct order
+### Step 10. Build Packages in the correct order
 ```bash
 cd ${ISAAC_ROS_WS}
 
@@ -374,12 +374,49 @@ source install/setup.bash
 
 ```
 
-### Step 8. Run Multi-stereo cuVSLAM
+### Step 11. Run Multi-stereo cuVSLAM
 ```bash
 ros2 launch isaac_ros_multicamera_vo \
   isaac_ros_visual_slam_multirealsense.launch.py
 ````
 
+```bash
+  ros2 topic list should output
+```
+- Note tf should exist if it doesn't there is a major problem.
+```bash
+
+```
+
+### Step 12. Foxglove visualisation
+- You need to import the forglove layout into foxglvoe before connecting
+- The jetson Orin Nano does not have the computational space to support foxglove and cuVSLAM please use wifi or ethernet to connect via foxglove
+- 
+```bash
+  foxglove-studio
+```
+- import from file
+
+## Helpful Debugging commands
+- rs-enumerate-devices -S shows all cameras
+- ros2 node list shows camera nodes
+```bash
+  ros2 node list | grep camera
+  ros2 node info /camera1/realsense | grep -A3 Publishers
+  ros2 node info /camera2/realsense | grep -A3 Publishers
+```
+- ros2 topic hz shows ~30 Hz
+```bash
+  ros2 topic hz /camera1/infra1/image_rect_raw
+  ros2 topic hz /camera2/infra1/image_rect_raw
+```
+- confirm TF tree exists for both
+```bash
+ros2 run tf2_ros tf2_echo camera1_link camera1_infra1_optical_frame
+ros2 run tf2_ros tf2_echo camera1_link camera1_infra2_optical_frame
+ros2 run tf2_ros tf2_echo camera2_link camera2_infra1_optical_frame
+ros2 run tf2_ros tf2_echo camera2_link camera2_infra2_optical_frame
+```
 
 # Stereo Log Book
 ## Stereo Log 04.02.26
