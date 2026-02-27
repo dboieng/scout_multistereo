@@ -1,9 +1,13 @@
 # scout_multistereo
-This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Intel realsense Camera's.
+This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Intel Realsense 435i Camera's.
+Start from **Step 8** if you have setup this up before.
+
+[Screencast from 02-20-2026 01:32:36 PM.webm](https://github.com/user-attachments/assets/f73d2423-a015-455b-881f-f4c10373a887)
+
 
 ## Multi-Stereo Setup (Guide)
 - This guide is designed for ROS ISAAC 3.2 on the Jetson Orin Nano fixing hidden pre-existing examples. I assume you have ROS ISAAC container setup and 2 IntelRealsense 435i's.
-- It is an amalgmation of different guides and uses a Nivida Example that exists in the ISAAC ROS 3.2 Git repo with no setup guide or reference to it in NIVIDA's documentation.
+- It is an amalgmation of different guides and uses a Nivida Example that exists in the ISAAC ROS 3.2 Git repo with no setup guide or reference in NIVIDA's 3.1 or 3.2 documentation it is ported over to visual slam folder from ROS ISAAC 4.0.
 
 ### Prerequisites - I assume you have Hardware setup on the Jetson Orin Nano
 - If not follow my guide [here](https://github.com/dboieng/Thesis/edit/main/README.md) steps 1 to 7.
@@ -87,75 +91,8 @@ sudo apt-get install -y pva-allow-2
 ```bash
   rs-enumerate-devices -S
 ```
-### 5. In the container: Install NGC tooling and download cuVSLAM assets
 
-```bash
-sudo apt-get update
-sudo apt-get install -y curl jq tar
-```
-Then, run these commands to download the asset from NGC:
-```bash
-NGC_ORG="nvidia"
-NGC_TEAM="isaac"
-PACKAGE_NAME="isaac_ros_visual_slam"
-NGC_RESOURCE="isaac_ros_visual_slam_assets"
-NGC_FILENAME="quickstart.tar.gz"
-MAJOR_VERSION=3
-MINOR_VERSION=2
-
-VERSION_REQ_URL="https://catalog.ngc.nvidia.com/api/resources/versions?orgName=$NGC_ORG&teamName=$NGC_TEAM&name=$NGC_RESOURCE&isPublic=true&pageNumber=0&pageSize=100&sortOrder=CREATED_DATE_DESC"
-
-AVAILABLE_VERSIONS=$(curl -s \
-    -H "Accept: application/json" "$VERSION_REQ_URL")
-
-LATEST_VERSION_ID=$(echo "$AVAILABLE_VERSIONS" | jq -r "
-    .recipeVersions[]
-    | .versionId as \$v
-    | \$v | select(test(\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"))
-    | split(\".\") | {major: .[0]|tonumber, minor: .[1]|tonumber, patch: .[2]|tonumber}
-    | select(.major == $MAJOR_VERSION and .minor <= $MINOR_VERSION)
-    | \$v
-    " | sort -V | tail -n 1
-)
-
-if [ -z "$LATEST_VERSION_ID" ]; then
-    echo "No corresponding version found for Isaac ROS $MAJOR_VERSION.$MINOR_VERSION"
-    echo "Found versions:"
-    echo "$AVAILABLE_VERSIONS" | jq -r '.recipeVersions[].versionId'
-else
-    mkdir -p "${ISAAC_ROS_WS}/isaac_ros_assets"
-    FILE_REQ_URL="https://api.ngc.nvidia.com/v2/resources/$NGC_ORG/$NGC_TEAM/$NGC_RESOURCE/versions/$LATEST_VERSION_ID/files/$NGC_FILENAME"
-
-    curl -LO --request GET "${FILE_REQ_URL}"
-    tar -xf "${NGC_FILENAME}" -C "${ISAAC_ROS_WS}/isaac_ros_assets"
-    rm "${NGC_FILENAME}"
-fi
-```
-This will populate ${ISAAC_ROS_WS}/isaac_ros_assets with the required cuVSLAM model and configuration assets.
-
-### Step 6. Install package dependencies via rosdep
-```bash
-cd "${ISAAC_ROS_WS}"
-
-rosdep update
-
-# Stereo pipeline
-rosdep install --from-paths \
-  ${ISAAC_ROS_WS}/src/isaac_ros_image_pipeline/isaac_ros_stereo_image_proc \
-  --ignore-src -y
-
-# Visual SLAM
-rosdep install --from-paths \
-  ${ISAAC_ROS_WS}/src/isaac_ros_visual_slam/isaac_ros_visual_slam \
-  --ignore-src -y
-
-# ⭐ Multi-camera VO dependencies
-rosdep install --from-paths \
-  ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo \
-  --ignore-src -y
-```
-
-### Step 7. Fix the launch file
+### Step 5. Fix the launch file
 - The launch file has two key errors there is a missing comma at the end of the file that leads to the node setup hanging and there setup of the camera nodes fails because it does not iteratet he setup.
 
 ```bash
@@ -290,7 +227,7 @@ def generate_launch_description():
                               realsense_image_capture,])
 ```
 
-### Step 8. Find out your Realsense Camera Serial numbers 
+### Step 6. Find out your Realsense Camera Serial numbers 
 - They have to be the same camera class either (X2 435i or X2 455) for the hardware sync to work. Other cameras including 435 and 415 don't work.
 ```bash
   rs-enumerate-devices -S
@@ -301,7 +238,7 @@ def generate_launch_description():
   cd ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/config
 ```
 
-### Step 9. Update the urdf file
+### Step 7. Update the urdf file
 - There is a Naming mismatch please copy the following urdf file into 2_realsense_calibration.urdf.xacro
 ```bash
   cd ${ISAAC_ROS_WS}\${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/urdf
@@ -345,6 +282,74 @@ def generate_launch_description():
   <link name="camera2_link"/>
 
 </robot>
+```
+
+### 8. In the container: Install NGC tooling and download cuVSLAM assets
+
+```bash
+sudo apt-get update
+sudo apt-get install -y curl jq tar
+```
+Then, run these commands to download the asset from NGC:
+```bash
+NGC_ORG="nvidia"
+NGC_TEAM="isaac"
+PACKAGE_NAME="isaac_ros_visual_slam"
+NGC_RESOURCE="isaac_ros_visual_slam_assets"
+NGC_FILENAME="quickstart.tar.gz"
+MAJOR_VERSION=3
+MINOR_VERSION=2
+
+VERSION_REQ_URL="https://catalog.ngc.nvidia.com/api/resources/versions?orgName=$NGC_ORG&teamName=$NGC_TEAM&name=$NGC_RESOURCE&isPublic=true&pageNumber=0&pageSize=100&sortOrder=CREATED_DATE_DESC"
+
+AVAILABLE_VERSIONS=$(curl -s \
+    -H "Accept: application/json" "$VERSION_REQ_URL")
+
+LATEST_VERSION_ID=$(echo "$AVAILABLE_VERSIONS" | jq -r "
+    .recipeVersions[]
+    | .versionId as \$v
+    | \$v | select(test(\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"))
+    | split(\".\") | {major: .[0]|tonumber, minor: .[1]|tonumber, patch: .[2]|tonumber}
+    | select(.major == $MAJOR_VERSION and .minor <= $MINOR_VERSION)
+    | \$v
+    " | sort -V | tail -n 1
+)
+
+if [ -z "$LATEST_VERSION_ID" ]; then
+    echo "No corresponding version found for Isaac ROS $MAJOR_VERSION.$MINOR_VERSION"
+    echo "Found versions:"
+    echo "$AVAILABLE_VERSIONS" | jq -r '.recipeVersions[].versionId'
+else
+    mkdir -p "${ISAAC_ROS_WS}/isaac_ros_assets"
+    FILE_REQ_URL="https://api.ngc.nvidia.com/v2/resources/$NGC_ORG/$NGC_TEAM/$NGC_RESOURCE/versions/$LATEST_VERSION_ID/files/$NGC_FILENAME"
+
+    curl -LO --request GET "${FILE_REQ_URL}"
+    tar -xf "${NGC_FILENAME}" -C "${ISAAC_ROS_WS}/isaac_ros_assets"
+    rm "${NGC_FILENAME}"
+fi
+```
+This will populate ${ISAAC_ROS_WS}/isaac_ros_assets with the required cuVSLAM model and configuration assets.
+
+### Step 9. Install package dependencies via rosdep
+```bash
+cd "${ISAAC_ROS_WS}"
+
+rosdep update
+
+# Stereo pipeline
+rosdep install --from-paths \
+  ${ISAAC_ROS_WS}/src/isaac_ros_image_pipeline/isaac_ros_stereo_image_proc \
+  --ignore-src -y
+
+# Visual SLAM
+rosdep install --from-paths \
+  ${ISAAC_ROS_WS}/src/isaac_ros_visual_slam/isaac_ros_visual_slam \
+  --ignore-src -y
+
+# ⭐ Multi-camera VO dependencies
+rosdep install --from-paths \
+  ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo \
+  --ignore-src -y
 ```
 
 ### Step 10. Build Packages in the correct order
