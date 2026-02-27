@@ -572,4 +572,7 @@ ros2 run tf2_ros tf2_echo camera2_link camera2_infra2_optical_frame
 
 <img width="1099" height="620" alt="Screenshot from 2026-02-20 15-51-54" src="https://github.com/user-attachments/assets/6fdf101b-5a97-4482-a2a9-d714b398eaae" />
 
-- Setup Guide to follow.   
+- Setup Guide to follow.
+
+## Stereo Log 27.02.26
+- I created the setup guide.
