@@ -381,6 +381,8 @@ ros2 launch isaac_ros_multicamera_vo \
 ````
 
 - ros2 topic list should output:
+```bash
+ros2 topic list
 /camera1/extrinsics/depth_to_infra1
 /camera1/extrinsics/depth_to_infra2
 /camera1/imu
@@ -438,7 +440,7 @@ ros2 launch isaac_ros_multicamera_vo \
 /visual_slam/vis/pose_graph_nodes
 /visual_slam/vis/slam_odometry
 /visual_slam/vis/velocity
-
+```
 - Note tf should exist if it doesn't there is a major problem.
 
 
