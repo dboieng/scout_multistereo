@@ -8,9 +8,7 @@ This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Inte
 ### Step 0 - I assume you have Hardware setup on the Jetson Orin Nano
 - If not follow my guide (here)[https://github.com/dboieng/Thesis/edit/main/README.md] steps 1 to 7.
 
-### Step 1 - 
-
-### 1. Create the Isaac ROS workspace and set environment variable
+### Step 1 - Create the Isaac ROS workspace and set environment variable
 
 ```bash
   mkdir -p ~/isaac_ros_ws/src
@@ -22,8 +20,361 @@ This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Inte
   cd "${ISAAC_ROS_WS}/src"
 ```
 
-### 2. Clone Isaac ROS repositories (release 3.2)
+### Step 2. Clone Isaac ROS repositories (release 3.2)
 
+```bash
+cd "${ISAAC_ROS_WS}/src"
+
+# Isaac ROS common (container tooling)
+git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git isaac_ros_common
+
+# Image pipeline (includes stereo image processing)
+git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline.git isaac_ros_image_pipeline
+
+# Visual SLAM (cuVSLAM)
+git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam.git isaac_ros_visual_slam
+
+# GPU accleration (important)
+git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros.git
+
+# ⭐ REQUIRED for multi-camera VO
+git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_examples.git isaac_ros_examples
+
+```
+
+### Step 3. Configure Isaac ROS Container (RealSense Image)
+
+Create the Isaac ROS common config file and set the CONFIG_IMAGE_KEY to the RealSense-enabled image (includes librealsense SDK and realsense-ros):
+```bash
+cd "${ISAAC_ROS_WS}/src/isaac_ros_common/scripts"
+
+touch .isaac_ros_common-config
+echo "CONFIG_IMAGE_KEY=ros2_humble.realsense" > .isaac_ros_common-config
+```
+
+### Step 4. Fit Jetson CDI Issue (Important)
+From the host:
+This rebuilds the container image using Dockerfile.realsense in one of its layered stages. Rebuilding can take several minutes.
+```bash
+cd ${ISAAC_ROS_WS}/src/isaac_ros_common && \
+./scripts/run_dev.sh -d ${ISAAC_ROS_WS}
+```
+- if you get this: docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: could not apply required modification to OCI specification: error modifying OCI spec: failed to inject CDI devices: unresolvable CDI devices nvidia.com/gpu=all: unknown
+- open ~/isaac_ros_ws/src/isaac_ros_common/scripts/run_dev.sh and find the line: DOCKER_ARGS+=("-e NVIDIA_VISIBLE_DEVICES=nvidia.com/gpu=all,nvidia.com/pva=all") and replace with DOCKER_ARGS+=("-e NVIDIA_VISIBLE_DEVICES=all")
+- I Found the above solution to not be very good and instead tried this off the forums which works:
+- to these install on host
+```bash
+sudo nvidia-ctk cdi generate --mode=csv --output=/etc/cdi/nvidia.yaml
+
+# Add Jetson public APT repository
+sudo apt-get update
+sudo apt-get install software-properties-common
+sudo apt-key adv --fetch-key https://repo.download.nvidia.com/jetson/jetson-ota-public.asc
+sudo add-apt-repository 'deb https://repo.download.nvidia.com/jetson/common r36.4 main'
+sudo apt-get update
+sudo apt-get install -y pva-allow-2
+```
+
+- Verify Realsense Setup with
+```bash
+  realsense-viewer
+```
+- If you have mutiple cameras
+```bash
+  rs-enumerate-devices -S
+```
+### 5. In the container: Install NGC tooling and download cuVSLAM assets
+
+```bash
+sudo apt-get update
+sudo apt-get install -y curl jq tar
+```
+Then, run these commands to download the asset from NGC:
+```bash
+NGC_ORG="nvidia"
+NGC_TEAM="isaac"
+PACKAGE_NAME="isaac_ros_visual_slam"
+NGC_RESOURCE="isaac_ros_visual_slam_assets"
+NGC_FILENAME="quickstart.tar.gz"
+MAJOR_VERSION=3
+MINOR_VERSION=2
+
+VERSION_REQ_URL="https://catalog.ngc.nvidia.com/api/resources/versions?orgName=$NGC_ORG&teamName=$NGC_TEAM&name=$NGC_RESOURCE&isPublic=true&pageNumber=0&pageSize=100&sortOrder=CREATED_DATE_DESC"
+
+AVAILABLE_VERSIONS=$(curl -s \
+    -H "Accept: application/json" "$VERSION_REQ_URL")
+
+LATEST_VERSION_ID=$(echo "$AVAILABLE_VERSIONS" | jq -r "
+    .recipeVersions[]
+    | .versionId as \$v
+    | \$v | select(test(\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"))
+    | split(\".\") | {major: .[0]|tonumber, minor: .[1]|tonumber, patch: .[2]|tonumber}
+    | select(.major == $MAJOR_VERSION and .minor <= $MINOR_VERSION)
+    | \$v
+    " | sort -V | tail -n 1
+)
+
+if [ -z "$LATEST_VERSION_ID" ]; then
+    echo "No corresponding version found for Isaac ROS $MAJOR_VERSION.$MINOR_VERSION"
+    echo "Found versions:"
+    echo "$AVAILABLE_VERSIONS" | jq -r '.recipeVersions[].versionId'
+else
+    mkdir -p "${ISAAC_ROS_WS}/isaac_ros_assets"
+    FILE_REQ_URL="https://api.ngc.nvidia.com/v2/resources/$NGC_ORG/$NGC_TEAM/$NGC_RESOURCE/versions/$LATEST_VERSION_ID/files/$NGC_FILENAME"
+
+    curl -LO --request GET "${FILE_REQ_URL}"
+    tar -xf "${NGC_FILENAME}" -C "${ISAAC_ROS_WS}/isaac_ros_assets"
+    rm "${NGC_FILENAME}"
+fi
+```
+This will populate ${ISAAC_ROS_WS}/isaac_ros_assets with the required cuVSLAM model and configuration assets.
+
+### Step 6. Install package dependencies via rosdep
+```bash
+cd "${ISAAC_ROS_WS}"
+
+rosdep update
+
+# Stereo pipeline
+rosdep install --from-paths \
+  ${ISAAC_ROS_WS}/src/isaac_ros_image_pipeline/isaac_ros_stereo_image_proc \
+  --ignore-src -y
+
+# Visual SLAM
+rosdep install --from-paths \
+  ${ISAAC_ROS_WS}/src/isaac_ros_visual_slam/isaac_ros_visual_slam \
+  --ignore-src -y
+
+# ⭐ Multi-camera VO dependencies
+rosdep install --from-paths \
+  ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo \
+  --ignore-src -y
+```
+
+### Step 7. Fix the launch file
+- The launch file has two key errors there is a missing comma at the end of the file that leads to the node setup hanging and there setup of the camera nodes fails because it does not iteratet he setup.
+
+```bash
+  cd ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/launch
+  vim isaac_ros_slam_multirealsense.launch.py
+```
+
+- please copy and paste the following launch file into the file named 'isaac_ros_slam_multirealsense.launch.py'
+
+```bash
+  # SPDX-FileCopyrightText: NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+# flake8: noqa: F403,F405
+
+import os
+import yaml
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.substitutions import LaunchConfiguration
+from launch.conditions import LaunchConfigurationEquals
+from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes, Node
+from launch_ros.descriptions import ComposableNode
+from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
+
+
+def generate_launch_description():
+
+    use_rosbag_arg = DeclareLaunchArgument('use_rosbag', default_value='False',
+                                           description='Whether to execute on rosbag')
+    use_rosbag = LaunchConfiguration('use_rosbag')
+
+    config_directory = get_package_share_directory('isaac_ros_multicamera_vo')
+    foxglove_xml_config = os.path.join(config_directory, 'config', 'foxglove_bridge_launch.xml')
+    foxglove_bridge_launch = IncludeLaunchDescription(
+        XMLLaunchDescriptionSource([foxglove_xml_config])
+    )
+
+    urdf_file = os.path.join(config_directory, 'urdf', '2_realsense_calibration.urdf.xacro')
+    with open(urdf_file, 'r') as f:
+        robot_description = f.read()
+
+    rs_config_path = os.path.join(config_directory, 'config', 'multi_realsense.yaml')
+    with open(rs_config_path) as rs_config_file:
+        rs_config = yaml.safe_load(rs_config_file)
+
+    remapping_list, optical_frames = [], []
+    num_cameras = 2*len(rs_config['cameras'])
+
+    for idx in range(num_cameras):
+        infra_cnt = idx % 2+1
+        camera_cnt = rs_config['cameras'][idx//2]['camera_name']
+        optical_frames += [f'{camera_cnt}_infra{infra_cnt}_optical_frame']
+        remapping_list += [(f'visual_slam/image_{idx}',
+                            f'/{camera_cnt}/infra{infra_cnt}/image_rect_raw'),
+                           (f'visual_slam/camera_info_{idx}',
+                            f'/{camera_cnt}/infra{infra_cnt}/camera_info')]
+
+    def realsense_capture(common_params, camera_params):
+        return ComposableNode(
+            name='realsense',  # keep node name same inside each namespace
+            namespace=camera_params['camera_name'],  # <-- IMPORTANT
+            package='realsense2_camera',
+            plugin='realsense2_camera::RealSenseNodeFactory',
+            parameters=[{**common_params, **camera_params}],
+        )
+
+    visual_slam_node = ComposableNode(
+        name='visual_slam_node',
+        package='isaac_ros_visual_slam',
+        plugin='nvidia::isaac_ros::visual_slam::VisualSlamNode',
+        parameters=[{
+            'enable_image_denoising': False,
+            'rectified_images': True,
+            'enable_imu_fusion': False,
+            'image_jitter_threshold_ms': 34.00,
+            'base_frame': 'base_link',
+            'enable_slam_visualization': True,
+            'enable_landmarks_view': True,
+            'enable_observations_view': True,
+            'enable_ground_constraint_in_odometry': False,
+            'enable_ground_constraint_in_slam': False,
+            'enable_localization_n_mapping': True,
+            'enable_debug_mode': False,
+            'num_cameras': num_cameras,
+            'min_num_images': num_cameras,
+            'camera_optical_frames': optical_frames,
+        }],
+        remappings=remapping_list,
+    )
+
+    visual_slam_launch_container = ComposableNodeContainer(
+        name='visual_slam_launch_container',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container_mt',
+        composable_node_descriptions=([visual_slam_node]),
+        output='screen',
+    )
+
+    realsense_image_capture = LoadComposableNodes(
+        target_container='visual_slam_launch_container',
+        condition=LaunchConfigurationEquals('use_rosbag', 'False'),
+        composable_node_descriptions=([realsense_capture(rs_config['common_params'], camera_config)
+                                       for camera_config in rs_config['cameras']]),
+    )
+
+    state_publisher = Node(package='robot_state_publisher',
+                           executable='robot_state_publisher',
+                           output='both',
+                           parameters=[{'robot_description': robot_description}])
+
+    return LaunchDescription([use_rosbag_arg,
+                              foxglove_bridge_launch,
+                              state_publisher,
+                              visual_slam_launch_container,
+                              realsense_image_capture,])
+```
+
+### Step 8. Find out your Realsense Camera Serial numbers 
+- They have to be the same camera class either (X2 435i or X2 455) for the hardware sync to work. Other cameras including 435 and 415 don't work.
+```bash
+  rs-enumerate-devices -S
+```
+
+- And place in the file 'multi_realsense.yaml' located at:
+```bash
+  cd ${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/config
+```
+
+### Step 9. Update the urdf file
+- There is a Naming mismatch please copy the following urdf file into 2_realsense_calibration.urdf.xacro
+```bash
+  cd ${ISAAC_ROS_WS}\${ISAAC_ROS_WS}/src/isaac_ros_examples/isaac_ros_multicamera_vo/urdf
+  vim 2_realsense_calibration.urdf.xacro
+```
+- Copy the following:
+```bash
+  <?xml version="1.0"?>
+<!--
+// Copyright 2024 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+-->
+<robot name="4_realsenses">
+  <link name="base_link"/>
+
+  <joint name="camera1" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera1_link"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera1_link"/>
+
+  <joint name="camera2" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera2_link"/>
+    <origin xyz="-0.1 -0.0475 0.0" rpy="0 0 3.14159"/>
+  </joint>
+
+  <link name="camera2_link"/>
+
+</robot>
+```
+
+### Step 7. Build Packages in the correct order
+```bash
+cd ${ISAAC_ROS_WS}
+
+colcon build --symlink-install \
+  --packages-up-to isaac_ros_stereo_image_proc \
+  --base-paths ${ISAAC_ROS_WS}/src/isaac_ros_image_pipeline/isaac_ros_stereo_image_proc
+
+colcon build --symlink-install \
+  --packages-up-to isaac_ros_visual_slam \
+  --base-paths ${ISAAC_ROS_WS}/src/isaac_ros_visual_slam/isaac_ros_visual_slam
+
+
+colcon build --symlink-install \
+  --packages-up-to isaac_ros_multicamera_vo \
+  --packages-skip \
+    isaac_ros_ess_models_install \
+    isaac_ros_peoplesemseg_models_install \
+    isaac_ros_peoplenet_models_install \
+  --allow-overriding \
+    isaac_ros_stereo_image_proc \
+    isaac_ros_visual_slam
+
+source install/setup.bash
+
+```
+
+### Step 8. Run Multi-stereo cuVSLAM
+```bash
+ros2 launch isaac_ros_multicamera_vo \
+  isaac_ros_visual_slam_multirealsense.launch.py
+````
 
 
 # Stereo Log Book
