@@ -5,8 +5,12 @@ This repo runs multistereo on the Jetson Orin Nano on ROS ISAAC 3.2 using 2 Inte
 - This guide is designed for ROS ISAAC 3.2 on the Jetson Orin Nano fixing hidden pre-existing examples. I assume you have ROS ISAAC container setup and 2 IntelRealsense 435i's.
 - It is an amalgmation of different guides and uses a Nivida Example that exists in the ISAAC ROS 3.2 Git repo with no setup guide or reference to it in NIVIDA's documentation.
 
-### Step 0 - I assume you have Hardware setup on the Jetson Orin Nano
+### Prerequisites - I assume you have Hardware setup on the Jetson Orin Nano
 - If not follow my guide (here)[https://github.com/dboieng/Thesis/edit/main/README.md] steps 1 to 7.
+
+### Step 0 - Setup Hardware on Intel Realsense
+- Follow the parts guide here(https://github.com/NVlabs/PyCuVSLAM/blob/main/examples/realsense/multicamera_hardware_assembly.md) and find attached image of my setup:
+![9X0eVoPh](https://github.com/user-attachments/assets/a1efe1c2-36e4-44a0-866a-4e8e82c805dc)
 
 ### Step 1 - Create the Isaac ROS workspace and set environment variable
 
