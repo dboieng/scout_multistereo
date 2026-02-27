@@ -443,13 +443,19 @@ ros2 launch isaac_ros_multicamera_vo \
 
 
 ### Step 12. Foxglove visualisation
-- You need to import the forglove layout into foxglvoe before connecting
-- The jetson Orin Nano does not have the computational space to support foxglove and cuVSLAM please use wifi or ethernet to connect via foxglove
-- 
 ```bash
   foxglove-studio
 ```
-- import file from foxglove layouts
+- The jetson Orin Nano does not have the computational space to support foxglove and cuVSLAM please use wifi or ethernet to connect via foxglove
+- on jetson get the hostname:
+```bash
+  hostname -I
+```
+- Open connection -> WebSocket: ws://JETSON_IP:8765
+- Import file from foxglove layouts click: 'import from file' and select 'foxglove_layout_realsense.json'
+- Should Look like this:
+<img width="2680" height="1660" alt="image" src="https://github.com/user-attachments/assets/88f2c82b-495a-4385-9ad5-37c13ccf8260" />
+
 
 ## Helpful Debugging commands
 - rs-enumerate-devices -S shows all cameras
